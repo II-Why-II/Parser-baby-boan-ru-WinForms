@@ -22,135 +22,167 @@ namespace Parser_baby_boan_ru
         public int PictureCounter = 0;
         private void button1_Click(object sender, EventArgs e)
         {
-            string url = textBox1.Text;
-            string BaseDirectoryPath = textBox2.Text;
-            string imageFormat = comboBox1.Text;
-            string DirectoryPath = BaseDirectoryPath + url.Replace("https://www.boan-baby.ru/", "\\").Replace("product/", "");
-
-            if (imageFormat == string.Empty || imageFormat == null)
-            {
-                imageFormat = "jpeg";
-                MessageBox.Show("Не указан формат сохраняемых изображений. По умолчанию задан .jpeg");
-            }
-            
-            var urlListWithAllColors = getUrlsAboutAllColorsOrGetNullIfException(url);
-            _ = 1;
-            foreach (var urlAboutColor in urlListWithAllColors)
-            {
-                string subDirectoryPath = DirectoryPath + urlAboutColor.Replace("https://www.boan-baby.ru/", "\\").Replace("product/", "");
-                _ = 1;
-                checkOnExistsTheFolders(subDirectoryPath);
-
-                string htmlThisPage = getPageHtmlOrNullIfExceprion(urlAboutColor);
-
-                ProductInfo productModel = ParseThePageAndReturnData(htmlThisPage);
-
-                productModel.Url = urlAboutColor;
-
-                productModel.DirectoryWithPicturesPath = subDirectoryPath;
-                
-                productModel.PictureUrls = getPictureUrlsOrNull(htmlThisPage);
-
-                productModel.YoutubeHrefs = getYoutubeUrlsOrNull(urlAboutColor);
-                _ = 1;
-                int numberOfImage = 0;
-                foreach (var pictureUrl in productModel.PictureUrls)
-                {
-                    var picturePath = getDictionaryWithDownloadPucturesToComputerOrNull(pictureUrl, subDirectoryPath, Convert.ToString(numberOfImage), imageFormat);
-                    numberOfImage++;
-
-                    foreach(var path in picturePath)
-                    {
-                        if (path.Key == "Origin picture")
-                            productModel.PathsOriginalImages.Add(path.Value);
-
-                        if (path.Key == "File for edit")
-                            productModel.PathsImagesForEdit.Add(path.Value);
-                    }
-                }
-
-                PictureCounter += productModel.PathsImagesForEdit.Count;
-                label5.Text = PictureCounter.ToString();
-
-                foreach (var picturePath in productModel.PathsImagesForEdit) 
-                {
-                    resizeImageAndSaveIt(picturePath, subDirectoryPath + "\\Edited images");
-                }
-                
-                saveDataToExcel(BaseDirectoryPath, productModel);
-                _ = 1;
-            }
-            _ = 1;
-        }
-        private void button2_Click(object sender, EventArgs e)
-        {
-            string BaseDirectoryPath = textBox2.Text + "\\Downloaded images";
-            string url = textBox3.Text;
-            string fileOriginalFormat = url.Split('.').Last();
-            string imageFormat = comboBox1.Text;
-            string imageName = url.Replace("https://", "").Replace("www.", "").Replace("boan-baby.ru/", "").Replace("product/", "").Replace("." + fileOriginalFormat, "").Replace("/", "-");
-
-            if (imageFormat == string.Empty || imageFormat == null)
-            {
-                imageFormat = "jpeg";
-                MessageBox.Show("Не указан формат сохраняемых изображений. По умолчанию задан .jpeg");
-            }
-
-            checkOnExistsTheFolders(BaseDirectoryPath);
-
             try
             {
-                var dictionaryImgPaths = getDictionaryWithDownloadPucturesToComputerOrNull(url, BaseDirectoryPath, imageName, imageFormat);
-                List<string> originFile = new List<string>();
-                List<string> filesForEdit = new List<string>();
-                foreach (var path in dictionaryImgPaths)
-                {
-                    if (path.Key == "Origin picture")
-                        originFile.Add(path.Value);
+                string url = textBox1.Text;
+                string BaseDirectoryPath = textBox2.Text;
+                string imageFormat = comboBox1.Text;
+                string DirectoryPath = BaseDirectoryPath + url.Replace("https://www.boan-baby.ru/", "\\").Replace("product/", "");
 
-                    if (path.Key == "File for edit")
-                        filesForEdit.Add(path.Value);
-                    PictureCounter++;
-                    label5.Text = PictureCounter.ToString();
+                if (imageFormat == string.Empty || imageFormat == null)
+                {
+                    imageFormat = "jpeg";
+                    MessageBox.Show("Не указан формат сохраняемых изображений. По умолчанию задан .jpeg");
                 }
 
-                foreach (var picPaths in filesForEdit)
-                    resizeImageAndSaveIt(picPaths, BaseDirectoryPath + "\\Edited images");
+                var urlListWithAllColors = getUrlsAboutAllColors(url);
+                _ = 1;
+                foreach (var urlAboutColor in urlListWithAllColors)
+                {
+                    try
+                    {
+                        string subDirectoryPath = DirectoryPath + urlAboutColor.Replace("https://www.boan-baby.ru/", "\\").Replace("product/", "");
+                        _ = 1;
+                        checkOnExistsTheFolders(subDirectoryPath);
+
+                        string htmlThisPage = getPageHtml(urlAboutColor);
+
+                        ProductInfo productModel = ParseThePageAndReturnData(htmlThisPage);
+
+                        productModel.Url = urlAboutColor;
+
+                        productModel.DirectoryWithPicturesPath = subDirectoryPath;
+
+                        productModel.PictureUrls = getPictureUrls(htmlThisPage);
+
+                        productModel.YoutubeHrefs = getYoutubeUrlsOrEmptyList(urlAboutColor);
+                        _ = 1;
+                        int numberOfImage = 0;
+                        foreach (var pictureUrl in productModel.PictureUrls)
+                        {
+                            var picturePath = getDictionaryWithDownloadPuctures(pictureUrl, subDirectoryPath, Convert.ToString(numberOfImage), imageFormat);
+                            numberOfImage++;
+
+                            foreach (var path in picturePath)
+                            {
+                                if (path.Key == "Origin picture")
+                                    productModel.PathsOriginalImages.Add(path.Value);
+
+                                if (path.Key == "File for edit")
+                                    productModel.PathsImagesForEdit.Add(path.Value);
+                            }
+                        }
+
+                        PictureCounter += productModel.PathsImagesForEdit.Count;
+                        label5.Text = PictureCounter.ToString();
+
+                        foreach (var picturePath in productModel.PathsImagesForEdit)
+                        {
+                            resizeImageAndSaveIt(picturePath, subDirectoryPath + "\\Edited images");
+                        }
+
+                        saveDataToExcel(BaseDirectoryPath, productModel);
+                        _ = 1;
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error on color-page:" + ex.Message);
+                        throw;
+                    }
+                }
+                _ = 1;
             }
             catch(Exception ex)
             {
-                MessageBox.Show("Error with picture in origin method: " + ex.Message);
+                MessageBox.Show("Error on button1_click:" + ex.Message);
+                throw;
+            }
+        }
+        private void button2_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string BaseDirectoryPath = textBox2.Text + "\\Downloaded images";
+                string url = textBox3.Text;
+                string fileOriginalFormat = url.Split('.').Last();
+                string imageFormat = comboBox1.Text;
+                string imageName = url.Replace("https://", "").Replace("www.", "").Replace("boan-baby.ru/", "").Replace("product/", "").Replace("." + fileOriginalFormat, "").Replace("/", "-");
+
+                if (imageFormat == string.Empty || imageFormat == null)
+                {
+                    imageFormat = "jpeg";
+                    MessageBox.Show("Не указан формат сохраняемых изображений. По умолчанию задан .jpeg");
+                }
+
+                checkOnExistsTheFolders(BaseDirectoryPath);
+
+                try
+                {
+                    var dictionaryImgPaths = getDictionaryWithDownloadPuctures(url, BaseDirectoryPath, imageName, imageFormat);
+                    List<string> originFile = new List<string>();
+                    List<string> filesForEdit = new List<string>();
+                    foreach (var path in dictionaryImgPaths)
+                    {
+                        if (path.Key == "Origin picture")
+                            originFile.Add(path.Value);
+
+                        if (path.Key == "File for edit")
+                            filesForEdit.Add(path.Value);
+                        PictureCounter++;
+                        label5.Text = PictureCounter.ToString();
+                    }
+
+                    foreach (var picPaths in filesForEdit)
+                        resizeImageAndSaveIt(picPaths, BaseDirectoryPath + "\\Edited images");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error with picture in origin method: " + ex.Message);
+                }
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show("error in button2_Click" + ex.Message);
+                throw;
             }
         }
 
         private void checkOnExistsTheFolders(string subDirectoryPath) 
         {
-            string originImagePath = subDirectoryPath + "\\Original images";
-            string forEditPaths = subDirectoryPath + "\\Images for edit";
-            string editedFilePaths = subDirectoryPath + "\\Edited images";
-            string subEditedNoReducedFiles = editedFilePaths + "\\No reduced images";
-            string subEditedReducedFiles = editedFilePaths + "\\Reduced images";
+            try
+            {
+                string originImagePath = subDirectoryPath + "\\Original images";
+                string forEditPaths = subDirectoryPath + "\\Images for edit";
+                string editedFilePaths = subDirectoryPath + "\\Edited images";
+                string subEditedNoReducedFiles = editedFilePaths + "\\No reduced images";
+                string subEditedReducedFiles = editedFilePaths + "\\Reduced images";
 
 
-            if (!Directory.Exists(subDirectoryPath))
-                Directory.CreateDirectory(subDirectoryPath);
+                if (!Directory.Exists(subDirectoryPath))
+                    Directory.CreateDirectory(subDirectoryPath);
 
-            if (!Directory.Exists(originImagePath))
-                Directory.CreateDirectory(originImagePath);
+                if (!Directory.Exists(originImagePath))
+                    Directory.CreateDirectory(originImagePath);
 
-            if (!Directory.Exists(forEditPaths))
-                Directory.CreateDirectory(forEditPaths);
+                if (!Directory.Exists(forEditPaths))
+                    Directory.CreateDirectory(forEditPaths);
 
-            if (!Directory.Exists(editedFilePaths))
-                Directory.CreateDirectory(editedFilePaths);
+                if (!Directory.Exists(editedFilePaths))
+                    Directory.CreateDirectory(editedFilePaths);
 
-            if (!Directory.Exists(subEditedNoReducedFiles))
-                Directory.CreateDirectory(subEditedNoReducedFiles);
+                if (!Directory.Exists(subEditedNoReducedFiles))
+                    Directory.CreateDirectory(subEditedNoReducedFiles);
 
-            if (!Directory.Exists(subEditedReducedFiles))
-                Directory.CreateDirectory(subEditedReducedFiles);
+                if (!Directory.Exists(subEditedReducedFiles))
+                    Directory.CreateDirectory(subEditedReducedFiles);
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show("Error check exists:" + ex.Message);
+                throw;
+            }
         }
-        private string getPageHtmlOrNullIfExceprion(string url)
+        private string getPageHtml(string url)
         {
             try
             {
@@ -166,7 +198,7 @@ namespace Parser_baby_boan_ru
             catch (Exception ex)
             {
                 MessageBox.Show("Loading error: " + ex.Message);
-                return null;
+                throw;
             }
         }
         private string getPathSavingFile(string path, string fileName, string fileFormat)
@@ -232,65 +264,69 @@ namespace Parser_baby_boan_ru
             }
             catch(Exception ex)
             {
-                MessageBox.Show("Parsing error: " + ex.Message);
+                MessageBox.Show("Parsing product error: " + ex.Message);
+                throw;
             }
             return productInfo;
         }
         private string getPResultListIntoH3(HtmlAgilityPack.HtmlDocument h3)
         {
-            string resultString = string.Empty;
-
-            var longDescriptionNodes = h3.DocumentNode.SelectNodes("//p");
-
-            foreach (var node in longDescriptionNodes)
+            try
             {
-                var lineSeparation = node.InnerText.Replace("&bull;", "").Replace("&nbsp;", "").Replace("&mdash;", "").Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-                foreach (var line in lineSeparation)
-                    resultString += line + "\n";
+                string resultString = string.Empty;
+
+                var longDescriptionNodes = h3.DocumentNode.SelectNodes("//p");
+
+                foreach (var node in longDescriptionNodes)
+                {
+                    var lineSeparation = node.InnerText.Replace("&bull;", "").Replace("&nbsp;", "").Replace("&mdash;", "").Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var line in lineSeparation)
+                        resultString += line + "\n";
+                }
+                _ = 1;
+                return resultString;
             }
-            _ = 1;
-            return resultString;
+            catch(Exception ex)
+            {
+                MessageBox.Show("Error in getter data into h3: " + ex.Message);
+                throw;
+            }
         }
 
-        private List<string> getUrlsAboutAllColorsOrGetNullIfException(string url)
+        private List<string> getUrlsAboutAllColors(string url)
         {
-            var pageHtmlInString = getPageHtmlOrNullIfExceprion(url);
-            if (pageHtmlInString != null)
+            var pageHtmlInString = getPageHtml(url);
+            try
             {
+                HtmlAgilityPack.HtmlDocument docAboutBasePage = new HtmlAgilityPack.HtmlDocument();
+                docAboutBasePage.LoadHtml(pageHtmlInString);
+
+                List<string> listOfHrefs = new List<string>();
                 try
                 {
-                    HtmlAgilityPack.HtmlDocument docAboutBasePage = new HtmlAgilityPack.HtmlDocument();
-                    docAboutBasePage.LoadHtml(pageHtmlInString);
+                    var activeProductHref = url;
+                    listOfHrefs.Add(activeProductHref);
 
-                    List<string> listOfHrefs = new List<string>();
-                    try
+                    var productColors = docAboutBasePage.DocumentNode.SelectNodes("//div[@id='product_variant_block']/a");
+                    foreach (var product in productColors)
                     {
-                        var activeProductHref = url;
-                        listOfHrefs.Add(activeProductHref);
-
-                        var productColors = docAboutBasePage.DocumentNode.SelectNodes("//div[@id='product_variant_block']/a");
-                        foreach (var product in productColors)
-                        {
-                            listOfHrefs.Add("https://www.boan-baby.ru/" + product.Attributes["href"].Value);
-                        }
-                        _ = 1;
+                        listOfHrefs.Add("https://www.boan-baby.ru/" + product.Attributes["href"].Value);
                     }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("error loading color pages: " + ex.Message);
-                    }
-                    return listOfHrefs;
+                    _ = 1;
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
-                    MessageBox.Show("Error loading page: " + ex.Message);
-                    return null;
+                    MessageBox.Show("error loading color pages: " + ex.Message);
                 }
+                return listOfHrefs;
             }
-            else
-                return null;
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error loading page: " + ex.Message);
+                throw;
+            }
         }
-        private List<string> getPictureUrlsOrNull(string html)
+        private List<string> getPictureUrls(string html)
         {
             try
             {
@@ -312,19 +348,18 @@ namespace Parser_baby_boan_ru
             catch (Exception ex)
             {
                 MessageBox.Show("error get picture urls: " + ex.Message);
-                return null;
+                throw;
             }
         }
-        private List<string> getYoutubeUrlsOrNull(string html)
+        private List<string> getYoutubeUrlsOrEmptyList(string html)
         {
+            List<string> youtubeUrls = new List<string>();
             try
             {
                 HtmlAgilityPack.HtmlDocument docAboutThisPage = new HtmlAgilityPack.HtmlDocument();
                 docAboutThisPage.LoadHtml(html);
 
                 var picHrefs = docAboutThisPage.DocumentNode.SelectNodes("//div[@class='foto_page_wrap']/div/a");
-
-                List<string> youtubeUrls = new List<string>();
 
                 foreach (var href in picHrefs)
                 {
@@ -335,11 +370,11 @@ namespace Parser_baby_boan_ru
             }
             catch (Exception ex)
             {
-                return null;
+                return youtubeUrls;
             }
         }
         
-        private Dictionary<string, string> getDictionaryWithDownloadPucturesToComputerOrNull(string url, string directoryPath, string fileName, string fileFormat)
+        private Dictionary<string, string> getDictionaryWithDownloadPuctures(string url, string directoryPath, string fileName, string fileFormat)
         {
             Dictionary<string, string> dictionaryDownloadedFilesPaths = new Dictionary<string, string>();
 
@@ -382,119 +417,134 @@ namespace Parser_baby_boan_ru
             catch (Exception ex)
             {
                 MessageBox.Show("Error load downloading picture:" + ex.Message);
-                return null;
+                throw;
             }
         }
 
         private void resizeImageAndSaveIt(string imagePath, string savingPath)
         {
-            string nameOfImage = imagePath.Split('\\').Last();
-            string noReducedImagePath = savingPath + "\\No reduced images\\" + nameOfImage;
-            string reducedImagePath = savingPath + "\\Reduced images\\" + nameOfImage;
-
-            using (MagickImage whiteSquid = new MagickImage("C:\\data\\special pictures\\White1000x1000.jpeg"))
+            try
             {
-                MagickImage image = new MagickImage(imagePath);
+                string nameOfImage = imagePath.Split('\\').Last();
+                string noReducedImagePath = savingPath + "\\No reduced images\\" + nameOfImage;
+                string reducedImagePath = savingPath + "\\Reduced images\\" + nameOfImage;
 
-                MagickGeometry squidSize = new MagickGeometry(1000, 1000);
-
-                // This will resize the image to a fixed size without maintaining the aspect ratio.
-                // Normally an image will be resized to fit inside the specified size.
-                squidSize.IgnoreAspectRatio = false;
-
-                image.HasAlpha = true;
-                image.ColorAlpha(new MagickColor("white"));
-
-                if (image.Width > image.Height)
-                    image.Resize(1000, 0);
-                else if (image.Width < image.Height)
-                    image.Resize(0, 1000);
-                else
-                    image.Resize(squidSize);
-
-                whiteSquid.Composite(image, Gravity.Center);
-
-                whiteSquid.Write(noReducedImagePath);
-
-                var optimizer = new ImageOptimizer();
-                optimizer.LosslessCompress(noReducedImagePath);
-
-                var savedImgInfo = new FileInfo(noReducedImagePath);
-                if (savedImgInfo.Length > 256000) //256000 == 250kb.  307200 == 300kb
+                using (MagickImage whiteSquid = new MagickImage("C:\\data\\special pictures\\White1000x1000.jpeg"))
                 {
-                    var reducedImgInfo = new FileInfo(reducedImagePath);
-                    bool saved = false;
-                    for (int quality = 75; saved != true && quality > 0; quality--)
+                    MagickImage image = new MagickImage(imagePath);
+
+                    MagickGeometry squidSize = new MagickGeometry(1000, 1000);
+
+                    // This will resize the image to a fixed size without maintaining the aspect ratio.
+                    // Normally an image will be resized to fit inside the specified size.
+                    squidSize.IgnoreAspectRatio = false;
+
+                    image.HasAlpha = true;
+                    image.ColorAlpha(new MagickColor("white"));
+
+                    if (image.Width > image.Height)
+                        image.Resize(1000, 0);
+                    else if (image.Width < image.Height)
+                        image.Resize(0, 1000);
+                    else
+                        image.Resize(squidSize);
+
+                    whiteSquid.Composite(image, Gravity.Center);
+
+                    whiteSquid.Write(noReducedImagePath);
+
+                    var optimizer = new ImageOptimizer();
+                    optimizer.LosslessCompress(noReducedImagePath);
+
+                    var savedImgInfo = new FileInfo(noReducedImagePath);
+                    if (savedImgInfo.Length > 256000) //256000 == 250kb.  307200 == 300kb
                     {
-                        image.Quality = quality;
+                        var reducedImgInfo = new FileInfo(reducedImagePath);
+                        bool saved = false;
+                        for (int quality = 75; saved != true && quality > 0; quality--)
+                        {
+                            image.Quality = quality;
 
-                        image.Write(reducedImagePath);
-                        optimizer.LosslessCompress(reducedImagePath);
+                            image.Write(reducedImagePath);
+                            optimizer.LosslessCompress(reducedImagePath);
 
-                        reducedImgInfo.Refresh();
+                            reducedImgInfo.Refresh();
 
-                        if (reducedImgInfo.Length < 307200)
-                            saved = true;
+                            if (reducedImgInfo.Length < 307200)
+                                saved = true;
+                        }
+                        if (saved != true)
+                            MessageBox.Show("Error with saving the photo");
                     }
-                    if (saved != true)
-                        MessageBox.Show("Error with saving the photo");
+                    _ = 1;
                 }
-                _ = 1;
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show("Error in resizer: " + ex.Message);
+                throw;
             }
         }
-       
+
         private void saveDataToExcel(string directoryPath, ProductInfo product)
         {
-            FileInfo newFile = new FileInfo(directoryPath + "\\Products.xlsx");
-
-            using (var package = new ExcelPackage(newFile))
+            try
             {
-                ExcelWorksheet sheet; //= package.Workbook.Worksheets[1]; // 1 in .Net3.5 and .Net 4.0; 0 in .Net core
+                FileInfo newFile = new FileInfo(directoryPath + "\\Products.xlsx");
 
-                if (package.Workbook.Worksheets["Content"] != null)
-                    sheet = package.Workbook.Worksheets["Content"];
-                else
-                    sheet = package.Workbook.Worksheets.Add("Content");
-                package.Save();
-
-                int row = 1;
-                int column = 1;
-
-                while (sheet.Cells[row, 1].Value != null)
+                using (var package = new ExcelPackage(newFile))
                 {
-                    row++;
+                    ExcelWorksheet sheet; //= package.Workbook.Worksheets[1]; // 1 in .Net3.5 and .Net 4.0; 0 in .Net core
+
+                    if (package.Workbook.Worksheets["Content"] != null)
+                        sheet = package.Workbook.Worksheets["Content"];
+                    else
+                        sheet = package.Workbook.Worksheets.Add("Content");
+                    package.Save();
+
+                    int row = 1;
+                    int column = 1;
+
+                    while (sheet.Cells[row, 1].Value != null)
+                    {
+                        row++;
+                    }
+
+                    if (row == 1 && sheet.Cells[1, 1].Value == null)
+                    {
+                        sheet.Cells[row, column++].Value = "Id";
+                        sheet.Cells[row, column++].Value = "Url";
+                        sheet.Cells[row, column++].Value = "Name";
+                        sheet.Cells[row, column++].Value = "Color";
+                        sheet.Cells[row, column++].Value = "Short description";
+                        sheet.Cells[row, column++].Value = "Fill description";
+                        sheet.Cells[row, column++].Value = "LongDescription";
+                        sheet.Cells[row, column++].Value = "Characteristics";
+                        sheet.Cells[row, column++].Value = "Gabarites";
+                        sheet.Cells[row, column++].Value = "Directory With Pictures";
+                        column = 1;
+                        row++;
+                    }
+
+                    sheet.Cells[row, column++].Value = row - 1;
+                    sheet.Cells[row, column++].Value = product.Url;
+                    sheet.Cells[row, column++].Value = product.Name;
+                    sheet.Cells[row, column++].Value = product.Color;
+                    sheet.Cells[row, column++].Value = product.ShortDescription;
+                    sheet.Cells[row, column++].Value = product.FullDescription;
+                    sheet.Cells[row, column++].Value = product.LongDescription;
+                    sheet.Cells[row, column++].Value = product.Characteristics;
+                    sheet.Cells[row, column++].Value = product.SizeList;
+                    sheet.Cells[row, column++].Value = product.DirectoryWithPicturesPath;
+
+                    package.Save();
                 }
-
-                if (row == 1 && sheet.Cells[1, 1].Value == null)
-                {
-                    sheet.Cells[row, column++].Value = "Id";
-                    sheet.Cells[row, column++].Value = "Url";
-                    sheet.Cells[row, column++].Value = "Name";
-                    sheet.Cells[row, column++].Value = "Color";
-                    sheet.Cells[row, column++].Value = "Short description";
-                    sheet.Cells[row, column++].Value = "Fill description";
-                    sheet.Cells[row, column++].Value = "LongDescription";
-                    sheet.Cells[row, column++].Value = "Characteristics";
-                    sheet.Cells[row, column++].Value = "Gabarites";
-                    sheet.Cells[row, column++].Value = "Directory With Pictures";
-                    column = 1;
-                    row++;
-                }
-
-                sheet.Cells[row, column++].Value = row - 1;
-                sheet.Cells[row, column++].Value = product.Url;
-                sheet.Cells[row, column++].Value = product.Name;
-                sheet.Cells[row, column++].Value = product.Color;
-                sheet.Cells[row, column++].Value = product.ShortDescription;
-                sheet.Cells[row, column++].Value = product.FullDescription;
-                sheet.Cells[row, column++].Value = product.LongDescription;
-                sheet.Cells[row, column++].Value = product.Characteristics;
-                sheet.Cells[row, column++].Value = product.SizeList;
-                sheet.Cells[row, column++].Value = product.DirectoryWithPicturesPath;
-
-                package.Save();
             }
-        }
+            catch(Exception ex)
+            {
+                MessageBox.Show("Error in adding data to excel: " + ex.Message);
+            }
+        }  
     }
     class ProductInfo
     {
